@@ -2,11 +2,16 @@ import pygame
 import sys
 
 pygame.init()
+pygame.font.init()
 
-size = width, height = 800, 800
+font = pygame.font.SysFont('Verdana', 30)
+size = width, height = 800, 900
 
 screen = pygame.display.set_mode(size)
 pygame.display.set_caption('Chess')
+
+checkText = font.render('Some Text', False, (255, 255, 255))
+checkRect = checkText.get_rect(center = (width//2, height-70))
 
 whiteTile = '#E6D5BB'
 greenTile = '#355745'
@@ -22,9 +27,11 @@ tiles = []
 '''
 
 class Tile:
-    def __init__(self, xPos, yPos, tileColor, piece='none', occupied=False):
+    def __init__(self, xPos, yPos, tileColor, piece=None, occupied='none'):
         self.xPos = xPos
         self.yPos = yPos
+        self.colPos = int(xPos/100)
+        self.rowPos = int(yPos/100)
         self.tileColor = tileColor
         self.piece = piece
         self.occupied = occupied
@@ -42,15 +49,19 @@ class Tile:
         pygame.draw.rect(surface, self.tileColor, (self.xPos, self.yPos, 100, 100))
 
 class Piece:
-    def __init__(self, id, tile, side, type="pawn"):
+    def __init__(self, id, tile, side, type="pawn", check=False):
         self.tile = tile
         self.side = side
         self.type = type
         self.id = id
+        self.check = check
         self.image = self.loadImage()
         self.image = pygame.transform.smoothscale(self.image, (100, 100))
         self.rect = self.image.get_rect()
         self.rect.center = (self.tile.xPos + 48, self.tile.yPos + 50)
+
+        self.tile.occupied = side
+        self.tile.piece = self
 
     def __str__(self):
         return self.type
@@ -69,6 +80,47 @@ class Piece:
         self.tile = tile
         self.rect.center = (self.tile.xPos + 48, self.tile.yPos + 50)
 
+    def checkCheck(self):
+        directions = [
+            (-1, 0),  # straight up *rook, queen
+            (-1, 1),  # upper right *bishop, queen
+            (0, 1),   # straight right *rook queen
+            (1, 1),   # bottom right *bishop queen
+            (1, 0),   # straight down *rook queen
+            (1, -1),  # bottom left *bishop queen
+            (0, -1),  # straight left *rook queen
+            (-1, -1)  # upper left *bishop queen
+        ]
+        
+        self.check = False
+
+        for direction in directions:
+            checkX, checkY = self.tile.colPos, self.tile.rowPos
+            while True:
+                checkX += direction[1]
+                checkY += direction[0]
+            
+                if (0 <= checkX < 8) and (0 <= checkY < 8):
+                    checkingTile = tiles[checkY][checkX]
+                else:
+                    break
+
+                if checkingTile.occupied != 'none':
+                    if checkingTile.piece != None:
+                        if direction == (-1, 0) or direction == (0, 1) or direction == (1, 0) or direction == (0, -1):
+                            if checkingTile.piece.side != self.side:
+                                if checkingTile.piece.type == 'queen' or checkingTile.piece.type == 'rook':
+                                    print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
+                                    self.check = True
+                        elif direction == (-1, -1) or direction == (-1, 1) or direction == (1, 1) or direction == (1, -1):
+                            if checkingTile.piece.side != self.side:
+                                if checkingTile.piece.type == 'queen' or checkingTile.piece.type == 'bishop':
+                                    print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
+                                    self.check = True
+                        else:
+                            self.check = False
+                        break
+    
 for y in range(8):
     row = []
     for x in range(8):
@@ -121,26 +173,27 @@ running = True
 selectedPiece = None
 
 while running:
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        #selects the piece that is being moved
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if not selectedPiece:
                 for piece in pieces:
                     if piece.rect.collidepoint(pygame.mouse.get_pos()):
                         selectedPiece = piece
                         break
+        #check if you can move the piece there
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if selectedPiece:
                 for row in tiles:
                     for tile in row:
-                        if tile.rect.collidepoint(pygame.mouse.get_pos()) and not tile.occupied:
-                            selectedPiece.tile.occupied = False
+                        if tile.rect.collidepoint(pygame.mouse.get_pos()) and tile.occupied == 'none':
+                            selectedPiece.tile.occupied = 'none'
                             selectedPiece.tile.piece = 'none'
                             selectedPiece.updateTile(tile)
-                            tile.piece = selectedPiece.id
-                            tile.occupied = True
+                            tile.piece = selectedPiece
+                            tile.occupied = selectedPiece.side
                             break
                         else:
                             continue
@@ -151,18 +204,36 @@ while running:
 
     screen.fill((0, 0, 0))
 
+    #check for checks
+    for piece in pieces:
+        if piece.type == 'king':
+            piece.checkCheck()
+            if piece.check == True and piece.side == 'white':
+                screen.fill((0, 0, 0), (0, 800, screen.get_width(), 900))
+                checkText = font.render('You are in check', False, (255, 255, 255))
+                checkRect = checkText.get_rect(center = (width//2, height-70))
+            elif piece.check == False and piece.side == 'white':
+                screen.fill((0, 0, 0), (0, 800, screen.get_width(), 900))
+                checkText = font.render('You are not in check', False, (255, 255, 255))
+                checkRect = checkText.get_rect(center = (width//2, height-70))
+
+    #draws each tile onto the screen
     for row in tiles:
         for tile in row:
             tile.draw(screen)
 
+    #draws each piece onto the screen
     for piece in pieces:
         piece.draw(screen)
         piece.tile.occupied = True
 
+    #updates the selected piece to be at the mouse position
+    ### NEED TO CHANGE THIS LATER SO THAT IT ALLOWS TO SELECT A PIECE WITHOUT DRAGGING IT
     if selectedPiece:
         mX, mY = pygame.mouse.get_pos()
         selectedPiece.movePiece(mX, mY)
 
+    screen.blit(checkText, checkRect)
 
     pygame.display.flip()
 
