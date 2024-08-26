@@ -91,6 +91,20 @@ class Piece:
             (0, -1),  # straight left *rook queen
             (-1, -1)  # upper left *bishop queen
         ]
+        knightDir = [
+            (-2, -1),
+            (-1, -2),
+            (1, -2),
+            (2, -1),
+            (2, 1),
+            (1, 2),
+            (-1, 2),
+            (-2, 1)
+        ]
+        pawnDir = [
+            (-1, -1),
+            (-1, 1),
+        ]
         
         self.check = False
 
@@ -105,21 +119,54 @@ class Piece:
                 else:
                     break
 
-                if checkingTile.occupied != 'none':
+                if checkingTile.occupied != 'none' and checkingTile.piece != None:
+                    if direction == (-1, 0) or direction == (0, 1) or direction == (1, 0) or direction == (0, -1):
+                        if checkingTile.piece.side != self.side:
+                            if checkingTile.piece.type == 'queen' or checkingTile.piece.type == 'rook':
+                                print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
+                                self.check = True
+                    elif direction == (-1, -1) or direction == (-1, 1) or direction == (1, 1) or direction == (1, -1):
+                        if checkingTile.piece.side != self.side:
+                            if checkingTile.piece.type == 'queen' or checkingTile.piece.type == 'bishop':
+                                print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
+                                self.check = True
+                    else:
+                        self.check = False
+                    break
+        
+        for direction in knightDir:
+            knightX, knightY = self.tile.colPos + direction[1], self.tile.rowPos + direction[0]
+
+            if (0 <= knightX < 8) and (0 <= knightY < 8):
+                checkingTile = tiles[knightY][knightX]
+            else:
+                break
+
+            if checkingTile.occupied != 'none' and checkingTile.piece != None:
+                    if direction in knightDir:
+                        if checkingTile.piece.side != self.side and checkingTile.piece.type == 'knight':
+                            print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
+                            self.check = True
+
+        for direction in pawnDir:
+            if self.side == 'white':
+                pawnX, pawnY = self.tile.colPos + direction[1], self.tile.rowPos + direction[0]  #(-1, -1), (-1, 1)
+            elif self.side == 'black':
+                pawnX, pawnY = self.tile.colPos - direction[1], self.tile.rowPos - direction[0]
+
+            if (0 <= pawnX < 8) and (0 <= pawnY < 8):
+                checkingTile = tiles[pawnY][pawnX]
+            else:
+                break
+
+            if checkingTile.occupied != 'none':
                     if checkingTile.piece != None:
-                        if direction == (-1, 0) or direction == (0, 1) or direction == (1, 0) or direction == (0, -1):
-                            if checkingTile.piece.side != self.side:
-                                if checkingTile.piece.type == 'queen' or checkingTile.piece.type == 'rook':
-                                    print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
-                                    self.check = True
-                        elif direction == (-1, -1) or direction == (-1, 1) or direction == (1, 1) or direction == (1, -1):
-                            if checkingTile.piece.side != self.side:
-                                if checkingTile.piece.type == 'queen' or checkingTile.piece.type == 'bishop':
-                                    print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
-                                    self.check = True
-                        else:
-                            self.check = False
-                        break
+                        if checkingTile.piece.side != self.side and checkingTile.piece.type == 'pawn':
+                            print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
+                            self.check = True
+        
+
+
     
 for y in range(8):
     row = []
