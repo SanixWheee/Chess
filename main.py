@@ -159,15 +159,13 @@ class Piece:
             else:
                 break
 
-            if checkingTile.occupied != 'none':
-                    if checkingTile.piece != None:
-                        if checkingTile.piece.side != self.side and checkingTile.piece.type == 'pawn':
-                            print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
-                            self.check = True
-        
-
-
+            if checkingTile.occupied != 'none' and checkingTile.piece != None:
+                if checkingTile.piece.side != self.side and checkingTile.piece.type == 'pawn':
+                    print(f"There is a {checkingTile.piece} at {checkingTile.colPos},{checkingTile.rowPos}")
+                    self.check = True
     
+
+
 for y in range(8):
     row = []
     for x in range(8):
